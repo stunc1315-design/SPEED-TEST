@@ -1,26 +1,22 @@
 "use strict";
 
-
 /* =========================================================
-   CONFIG
+   LEVEL SPEED V4
+   HIZLI + STABIL SPEED TEST
    ========================================================= */
 
 const CONFIG = {
+    pingCount: 8,
 
-    // Daha uzun gerçek test
-    downloadDuration: 10000,
+    downloadDuration: 3000,
+    uploadDuration: 3000,
 
-    uploadDuration: 9000,
-
-    // Download için paralel bağlantılar
     downloadStreams: 3,
+    uploadStreams: 2,
 
-    // Upload tek tek gönderilir
-    uploadChunkMB: 4,
+    uploadChunkMB: 1,
 
-    // Ping
-    pingCount: 10
-
+    requestTimeout: 5000
 };
 
 
@@ -28,78 +24,38 @@ const CONFIG = {
    ELEMENTS
    ========================================================= */
 
-const $ = id =>
-    document.getElementById(id);
+const $ = id => document.getElementById(id);
 
+const phase = $("phase");
+const speedNumber = $("speedNumber");
+const speedMode = $("speedMode");
+const speedRing = $("speedRing");
 
-const phase =
-    $("phase");
+const progressLabel = $("progressLabel");
+const progressPercent = $("progressPercent");
+const progressValue = $("progressValue");
 
-const speedNumber =
-    $("speedNumber");
+const startButton = $("startButton");
+const startText = $("startText");
+const stopButton = $("stopButton");
 
-const speedMode =
-    $("speedMode");
+const downloadEl = $("download");
+const uploadEl = $("upload");
+const pingEl = $("ping");
+const jitterEl = $("jitter");
 
-const speedRing =
-    $("speedRing");
+const liveSpeed = $("liveSpeed");
 
-const progressLabel =
-    $("progressLabel");
+const chart = $("chartCanvas");
+const chartEmpty = $("chartEmpty");
 
-const progressPercent =
-    $("progressPercent");
+const scoreEl = $("score");
+const qualityTitle = $("qualityTitle");
+const qualityText = $("qualityText");
 
-const progressValue =
-    $("progressValue");
-
-const startButton =
-    $("startButton");
-
-const startText =
-    $("startText");
-
-const stopButton =
-    $("stopButton");
-
-const downloadEl =
-    $("download");
-
-const uploadEl =
-    $("upload");
-
-const pingEl =
-    $("ping");
-
-const jitterEl =
-    $("jitter");
-
-const liveSpeed =
-    $("liveSpeed");
-
-const chart =
-    $("chartCanvas");
-
-const chartEmpty =
-    $("chartEmpty");
-
-const scoreEl =
-    $("score");
-
-const qualityTitle =
-    $("qualityTitle");
-
-const qualityText =
-    $("qualityText");
-
-const ipEl =
-    $("ip");
-
-const connectionEl =
-    $("connection");
-
-const serverEl =
-    $("server");
+const ipEl = $("ip");
+const connectionEl = $("connection");
+const serverEl = $("server");
 
 
 /* =========================================================
@@ -107,7 +63,6 @@ const serverEl =
    ========================================================= */
 
 let running = false;
-
 let controller = null;
 
 let graph = [];
@@ -115,75 +70,59 @@ let graph = [];
 let lastSpeed = 0;
 
 let downloadResult = 0;
-
 let uploadResult = 0;
-
 let pingResult = 0;
-
 let jitterResult = 0;
 
 
 /* =========================================================
-   BASIC
+   HELPERS
    ========================================================= */
 
 function sleep(ms) {
-
-    return new Promise(
-        resolve => setTimeout(resolve, ms)
-    );
-
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 
 function token() {
-
     return (
         Date.now().toString(36) +
-        Math.random()
-            .toString(36)
-            .slice(2)
+        Math.random().toString(36).slice(2)
     );
-
 }
 
 
 function number(value, decimals = 1) {
-
     if (!Number.isFinite(value)) {
         return "0";
     }
 
-    return Number(value).toFixed(
-        decimals
-    );
-
+    return Number(value).toFixed(decimals);
 }
 
 
 function progress(value, label) {
+    value = Math.max(0, Math.min(100, value));
 
-    value = Math.max(
-        0,
-        Math.min(
-            100,
-            value
-        )
-    );
-
-    progressValue.style.width =
-        `${value}%`;
-
-    progressPercent.textContent =
-        `${Math.round(value)}%`;
-
-    if (label) {
-
-        progressLabel.textContent =
-            label;
-
+    if (progressValue) {
+        progressValue.style.width = `${value}%`;
     }
 
+    if (progressPercent) {
+        progressPercent.textContent =
+            `${Math.round(value)}%`;
+    }
+
+    if (label && progressLabel) {
+        progressLabel.textContent = label;
+    }
+}
+
+
+function checkRunning() {
+    if (!running) {
+        throw new Error("Test durduruldu.");
+    }
 }
 
 
@@ -193,58 +132,52 @@ function progress(value, label) {
 
 function setSpeed(value, mode = "") {
 
-    value =
-        Math.max(
-            0,
-            Number(value) || 0
-        );
+    value = Math.max(
+        0,
+        Number(value) || 0
+    );
 
     lastSpeed = value;
 
-
-    speedNumber.textContent =
-        value >= 100
-            ? Math.round(value)
-            : number(value, 1);
-
-
-    liveSpeed.textContent =
-        `${number(value, 1)} Mbps`;
-
-
-    if (mode) {
-
-        speedMode.textContent =
-            mode;
-
+    if (speedNumber) {
+        speedNumber.textContent =
+            value >= 100
+                ? Math.round(value)
+                : number(value, 1);
     }
 
+    if (liveSpeed) {
+        liveSpeed.textContent =
+            `${number(value, 1)} Mbps`;
+    }
 
-    let percentage =
+    if (mode && speedMode) {
+        speedMode.textContent = mode;
+    }
+
+    const percentage =
         Math.min(
             100,
-            value / Math.max(
-                100,
-                value * 1.25
-            ) * 100
+            value /
+            Math.max(100, value * 1.25) *
+            100
         );
 
-
-    let degrees =
+    const degrees =
         percentage * 2.8;
 
-
-    speedRing.style.background = `
-        conic-gradient(
-            from 220deg,
-            #36f28b 0deg,
-            #36f28b ${degrees}deg,
-            rgba(255,255,255,.05) ${degrees}deg,
-            rgba(255,255,255,.05) 280deg,
-            transparent 280deg
-        )
-    `;
-
+    if (speedRing) {
+        speedRing.style.background = `
+            conic-gradient(
+                from 220deg,
+                #36f28b 0deg,
+                #36f28b ${degrees}deg,
+                rgba(255,255,255,.05) ${degrees}deg,
+                rgba(255,255,255,.05) 280deg,
+                transparent 280deg
+            )
+        `;
+    }
 }
 
 
@@ -254,8 +187,14 @@ function setSpeed(value, mode = "") {
 
 function resizeCanvas() {
 
+    if (!chart) return;
+
     const rect =
         chart.getBoundingClientRect();
+
+    if (!rect.width || !rect.height) {
+        return;
+    }
 
     const ratio =
         window.devicePixelRatio || 1;
@@ -279,49 +218,47 @@ function resizeCanvas() {
     );
 
     drawGraph();
-
 }
 
 
 function addGraph(value) {
 
-    graph.push(
-        Math.max(
-            0,
-            Number(value) || 0
-        )
-    );
-
-
-    if (graph.length > 120) {
-
-        graph.shift();
-
+    if (!Number.isFinite(value)) {
+        return;
     }
 
+    graph.push(
+        Math.max(0, Number(value))
+    );
 
-    chartEmpty.style.display =
-        "none";
+    if (graph.length > 100) {
+        graph.shift();
+    }
+
+    if (chartEmpty) {
+        chartEmpty.style.display = "none";
+    }
 
     drawGraph();
-
 }
 
 
 function drawGraph() {
 
+    if (!chart) return;
+
     const rect =
         chart.getBoundingClientRect();
 
-    const width =
-        rect.width;
+    const width = rect.width;
+    const height = rect.height;
 
-    const height =
-        rect.height;
+    if (!width || !height) {
+        return;
+    }
 
     const ctx =
         chart.getContext("2d");
-
 
     ctx.clearRect(
         0,
@@ -330,47 +267,27 @@ function drawGraph() {
         height
     );
 
-
-    // GRID
-
     ctx.strokeStyle =
         "rgba(255,255,255,.045)";
 
     ctx.lineWidth = 1;
 
-
-    for (
-        let i = 1;
-        i < 5;
-        i++
-    ) {
+    for (let i = 1; i < 5; i++) {
 
         const y =
-            height *
-            i /
-            5;
+            height * i / 5;
 
         ctx.beginPath();
 
-        ctx.moveTo(
-            0,
-            y
-        );
-
-        ctx.lineTo(
-            width,
-            y
-        );
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
 
         ctx.stroke();
-
     }
-
 
     if (graph.length < 2) {
         return;
     }
-
 
     const max =
         Math.max(
@@ -378,37 +295,27 @@ function drawGraph() {
             ...graph
         ) * 1.15;
 
-
     const points =
-        graph.map(
-            (value, index) => {
+        graph.map((value, index) => {
 
-                const x =
-                    index /
-                    (graph.length - 1) *
-                    width;
+            const x =
+                index /
+                (graph.length - 1) *
+                width;
 
-                const y =
-                    height -
-                    (
-                        value /
-                        max
-                    ) *
-                    (
-                        height - 15
-                    ) -
-                    7;
+            const y =
+                height -
+                (
+                    value / max
+                ) *
+                (height - 15) -
+                7;
 
-                return {
-                    x,
-                    y
-                };
-
-            }
-        );
+            return { x, y };
+        });
 
 
-    // AREA
+    /* AREA */
 
     ctx.beginPath();
 
@@ -417,16 +324,12 @@ function drawGraph() {
         height
     );
 
-
     for (const point of points) {
-
         ctx.lineTo(
             point.x,
             point.y
         );
-
     }
-
 
     ctx.lineTo(
         points[points.length - 1].x,
@@ -435,7 +338,6 @@ function drawGraph() {
 
     ctx.closePath();
 
-
     const gradient =
         ctx.createLinearGradient(
             0,
@@ -443,7 +345,6 @@ function drawGraph() {
             0,
             height
         );
-
 
     gradient.addColorStop(
         0,
@@ -455,54 +356,95 @@ function drawGraph() {
         "rgba(54,242,139,0)"
     );
 
-
-    ctx.fillStyle =
-        gradient;
-
+    ctx.fillStyle = gradient;
     ctx.fill();
 
 
-    // LINE
+    /* LINE */
 
     ctx.beginPath();
 
+    points.forEach((point, index) => {
 
-    points.forEach(
-        (point, index) => {
+        if (index === 0) {
 
-            if (index === 0) {
+            ctx.moveTo(
+                point.x,
+                point.y
+            );
 
-                ctx.moveTo(
-                    point.x,
-                    point.y
-                );
+        } else {
 
-            } else {
-
-                ctx.lineTo(
-                    point.x,
-                    point.y
-                );
-
-            }
-
+            ctx.lineTo(
+                point.x,
+                point.y
+            );
         }
-    );
-
+    });
 
     ctx.strokeStyle =
         "#36f28b";
 
     ctx.lineWidth = 2.5;
 
-    ctx.lineCap =
-        "round";
-
-    ctx.lineJoin =
-        "round";
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
 
     ctx.stroke();
+}
 
+
+/* =========================================================
+   SAFE FETCH
+   ========================================================= */
+
+async function fetchWithTimeout(
+    url,
+    options = {},
+    timeout = CONFIG.requestTimeout
+) {
+
+    const localController =
+        new AbortController();
+
+    const timer =
+        setTimeout(
+            () => localController.abort(),
+            timeout
+        );
+
+    try {
+
+        const signal =
+            options.signal;
+
+        if (signal) {
+
+            if (signal.aborted) {
+                localController.abort();
+            } else {
+
+                signal.addEventListener(
+                    "abort",
+                    () => localController.abort(),
+                    { once: true }
+                );
+            }
+        }
+
+        return await fetch(
+            url,
+            {
+                ...options,
+                signal:
+                    localController.signal
+            }
+        );
+
+    } finally {
+
+        clearTimeout(timer);
+    }
 }
 
 
@@ -511,6 +453,8 @@ function drawGraph() {
    ========================================================= */
 
 async function testPing() {
+
+    checkRunning();
 
     phase.textContent =
         "PING ÖLÇÜLÜYOR";
@@ -523,9 +467,7 @@ async function testPing() {
         "Sunucu gecikmesi ölçülüyor..."
     );
 
-
     const values = [];
-
 
     for (
         let i = 0;
@@ -533,62 +475,71 @@ async function testPing() {
         i++
     ) {
 
-        if (!running) {
-            throw new Error(
-                "Test durduruldu."
-            );
-        }
-
+        checkRunning();
 
         const start =
             performance.now();
 
+        try {
 
-        await fetch(
-            `/api/ping?x=${token()}`,
-            {
-                cache: "no-store",
-                signal:
-                    controller.signal
+            const response =
+                await fetchWithTimeout(
+                    `/api/ping?x=${token()}`,
+                    {
+                        cache: "no-store",
+                        signal:
+                            controller.signal
+                    },
+                    2000
+                );
+
+            if (!response.ok) {
+                throw new Error("Ping başarısız.");
             }
-        );
 
+            const result =
+                performance.now() -
+                start;
 
-        const result =
-            performance.now() -
-            start;
+            values.push(result);
 
+            progress(
+                5 +
+                (
+                    (i + 1) /
+                    CONFIG.pingCount
+                ) * 10,
+                `Ping ölçülüyor • ${Math.round(result)} ms`
+            );
 
-        values.push(
-            result
-        );
+        } catch (error) {
 
+            if (error.name === "AbortError") {
+                throw error;
+            }
 
-        progress(
-            5 +
-            (
-                (i + 1) /
-                CONFIG.pingCount
-            ) * 10,
-            `Ping ölçülüyor... ${Math.round(result)} ms`
-        );
+            console.warn(
+                "Ping hatası:",
+                error
+            );
+        }
 
-
-        await sleep(100);
-
+        await sleep(60);
     }
 
+    if (!values.length) {
+        throw new Error(
+            "Ping ölçümü yapılamadı."
+        );
+    }
 
     const average =
         values.reduce(
             (a, b) => a + b,
             0
-        ) /
-        values.length;
-
+        ) / values.length;
 
     const jitterValues = [];
-
 
     for (
         let i = 1;
@@ -602,27 +553,18 @@ async function testPing() {
                 values[i - 1]
             )
         );
-
     }
 
-
     const jitter =
-        jitterValues.reduce(
-            (a, b) => a + b,
-            0
-        ) /
-        Math.max(
-            1,
-            jitterValues.length
-        );
+        jitterValues.length
+            ? jitterValues.reduce(
+                (a, b) => a + b,
+                0
+            ) / jitterValues.length
+            : 0;
 
-
-    pingResult =
-        average;
-
-    jitterResult =
-        jitter;
-
+    pingResult = average;
+    jitterResult = jitter;
 
     pingEl.textContent =
         number(average);
@@ -630,17 +572,15 @@ async function testPing() {
     jitterEl.textContent =
         number(jitter);
 
-
     return {
         ping: average,
         jitter
     };
-
 }
 
 
 /* =========================================================
-   DOWNLOAD
+   DOWNLOAD WORKER
    ========================================================= */
 
 async function downloadWorker(
@@ -648,74 +588,73 @@ async function downloadWorker(
     onBytes
 ) {
 
-    const response =
-        await fetch(
-            `/api/download?mb=200&x=${token()}`,
-            {
-                cache: "no-store",
-                signal
-            }
-        );
+    try {
 
-
-    if (!response.ok) {
-
-        throw new Error(
-            "Download bağlantısı başarısız."
-        );
-
-    }
-
-
-    if (!response.body) {
-
-        throw new Error(
-            "Tarayıcı veri akışını desteklemiyor."
-        );
-
-    }
-
-
-    const reader =
-        response.body.getReader();
-
-
-    let total = 0;
-
-
-    while (true) {
-
-        const {
-            done,
-            value
-        } = await reader.read();
-
-
-        if (done) {
-            break;
-        }
-
-
-        if (value) {
-
-            total +=
-                value.byteLength;
-
-            onBytes(
-                value.byteLength
+        const response =
+            await fetch(
+                `/api/download?mb=50&x=${token()}`,
+                {
+                    cache: "no-store",
+                    signal
+                }
             );
 
+        if (!response.ok) {
+            throw new Error(
+                "Download bağlantısı başarısız."
+            );
         }
 
+        if (!response.body) {
+            throw new Error(
+                "Tarayıcı veri akışını desteklemiyor."
+            );
+        }
+
+        const reader =
+            response.body.getReader();
+
+        while (true) {
+
+            const {
+                done,
+                value
+            } = await reader.read();
+
+            if (done) {
+                break;
+            }
+
+            if (value) {
+
+                onBytes(
+                    value.byteLength
+                );
+            }
+        }
+
+    } catch (error) {
+
+        if (
+            error.name !==
+            "AbortError"
+        ) {
+            console.warn(
+                "Download worker:",
+                error
+            );
+        }
     }
-
-
-    return total;
-
 }
 
 
+/* =========================================================
+   DOWNLOAD
+   ========================================================= */
+
 async function testDownload() {
+
+    checkRunning();
 
     phase.textContent =
         "DOWNLOAD ÖLÇÜLÜYOR";
@@ -723,27 +662,28 @@ async function testDownload() {
     speedMode.textContent =
         "DOWNLOAD";
 
-
     progress(
         18,
         "İndirme hızı ölçülüyor..."
     );
 
-
     const start =
         performance.now();
 
-
     let totalBytes = 0;
-
     let previousBytes = 0;
+    let previousTime = start;
 
-    let previousTime =
-        performance.now();
+    const phaseController =
+        new AbortController();
 
+    const abortTimer =
+        setTimeout(
+            () => phaseController.abort(),
+            CONFIG.downloadDuration
+        );
 
     const workers = [];
-
 
     for (
         let i = 0;
@@ -753,126 +693,88 @@ async function testDownload() {
 
         workers.push(
             downloadWorker(
-                controller.signal,
+                phaseController.signal,
                 bytes => {
-
-                    totalBytes +=
-                        bytes;
-
+                    totalBytes += bytes;
                 }
             )
         );
-
     }
 
-
     const timer =
-        setInterval(
-            () => {
+        setInterval(() => {
 
-                const now =
-                    performance.now();
+            const now =
+                performance.now();
 
-                const elapsed =
-                    (
-                        now -
-                        start
-                    ) / 1000;
+            const elapsed =
+                (now - start) / 1000;
 
+            const interval =
+                (now - previousTime) / 1000;
 
-                const interval =
-                    (
-                        now -
-                        previousTime
-                    ) / 1000;
+            const intervalBytes =
+                totalBytes -
+                previousBytes;
 
+            if (interval > 0) {
 
-                const intervalBytes =
-                    totalBytes -
-                    previousBytes;
+                const instant =
+                    intervalBytes *
+                    8 /
+                    interval /
+                    1000000;
 
-
-                if (interval > 0) {
-
-                    const instant =
-                        intervalBytes *
-                        8 /
-                        interval /
-                        1000000;
-
-
-                    setSpeed(
-                        instant,
-                        "DOWNLOAD"
-                    );
-
-                    addGraph(
-                        instant
-                    );
-
-                }
-
-
-                previousBytes =
-                    totalBytes;
-
-                previousTime =
-                    now;
-
-
-                const percent =
-                    Math.min(
-                        99,
-                        elapsed /
-                        (
-                            CONFIG.downloadDuration /
-                            1000
-                        ) *
-                        100
-                    );
-
-
-                progress(
-                    18 +
-                    percent *
-                    .40,
-                    `Download ölçülüyor • ${number(lastSpeed)} Mbps`
+                setSpeed(
+                    instant,
+                    "DOWNLOAD"
                 );
 
+                addGraph(instant);
+            }
 
-            },
-            150
-        );
+            previousBytes =
+                totalBytes;
 
+            previousTime =
+                now;
 
-    // Minimum süre garantisi
+            const percent =
+                Math.min(
+                    100,
+                    elapsed /
+                    (CONFIG.downloadDuration / 1000) *
+                    100
+                );
 
-    const minimumTime =
-        sleep(
-            CONFIG.downloadDuration
-        );
+            progress(
+                18 +
+                percent * 0.42,
+                `Download ölçülüyor • ${number(lastSpeed)} Mbps`
+            );
 
+        }, 120);
 
     try {
 
-        await Promise.all([
-            Promise.all(workers),
-            minimumTime
-        ]);
+        await Promise.all(workers);
 
     } finally {
 
-        clearInterval(timer);
+        phaseController.abort();
 
+        clearTimeout(abortTimer);
+        clearInterval(timer);
     }
 
-
     const elapsed =
-        (
-            performance.now() -
-            start
-        ) / 1000;
-
+        Math.max(
+            0.1,
+            (
+                performance.now() -
+                start
+            ) / 1000
+        );
 
     const speed =
         totalBytes *
@@ -880,34 +782,27 @@ async function testDownload() {
         elapsed /
         1000000;
 
-
-    downloadResult =
-        speed;
-
+    downloadResult = speed;
 
     downloadEl.textContent =
         number(speed);
-
 
     setSpeed(
         speed,
         "DOWNLOAD"
     );
 
-
     progress(
         60,
         `Download tamamlandı • ${number(speed)} Mbps`
     );
 
-
     return speed;
-
 }
 
 
 /* =========================================================
-   UPLOAD
+   UPLOAD DATA
    ========================================================= */
 
 function createUploadChunk(
@@ -919,24 +814,17 @@ function createUploadChunk(
         1024 *
         1024;
 
-
     const data =
         new Uint8Array(bytes);
-
-
-    // Random data
-    // compression/cache ihtimalini azaltır
 
     const block =
         new Uint8Array(
             64 * 1024
         );
 
-
     crypto.getRandomValues(
         block
     );
-
 
     for (
         let offset = 0;
@@ -954,71 +842,90 @@ function createUploadChunk(
             ),
             offset
         );
-
     }
-
 
     return data;
-
 }
 
 
-async function uploadChunk(
-    data
+/* =========================================================
+   UPLOAD WORKER
+   ========================================================= */
+
+async function uploadWorker(
+    signal,
+    onBytes
 ) {
 
-    const response =
-        await fetch(
-            `/api/upload?x=${token()}`,
-            {
-                method: "POST",
+    while (!signal.aborted) {
 
-                body: data,
+        try {
 
-                cache: "no-store",
+            const data =
+                createUploadChunk(
+                    CONFIG.uploadChunkMB
+                );
 
-                signal:
-                    controller.signal,
+            const response =
+                await fetch(
+                    `/api/upload?x=${token()}`,
+                    {
+                        method: "POST",
+                        body: data,
+                        cache: "no-store",
+                        signal,
+                        headers: {
+                            "Content-Type":
+                                "application/octet-stream"
+                        }
+                    }
+                );
 
-                headers: {
-                    "Content-Type":
-                        "application/octet-stream"
-                }
+            if (!response.ok) {
+                break;
             }
-        );
 
+            const result =
+                await response.json();
 
-    if (!response.ok) {
+            if (
+                result &&
+                result.ok
+            ) {
 
-        throw new Error(
-            "Upload bağlantısı başarısız."
-        );
+                onBytes(
+                    result.bytes ||
+                    data.byteLength
+                );
+            }
 
+        } catch (error) {
+
+            if (
+                error.name ===
+                "AbortError"
+            ) {
+                break;
+            }
+
+            console.warn(
+                "Upload worker:",
+                error
+            );
+
+            break;
+        }
     }
-
-
-    const result =
-        await response.json();
-
-
-    if (!result.ok) {
-
-        throw new Error(
-            "Upload sunucusu veriyi kabul etmedi."
-        );
-
-    }
-
-
-    return (
-        result.bytes ||
-        data.byteLength
-    );
-
 }
 
 
+/* =========================================================
+   UPLOAD
+   ========================================================= */
+
 async function testUpload() {
+
+    checkRunning();
 
     phase.textContent =
         "UPLOAD ÖLÇÜLÜYOR";
@@ -1026,180 +933,125 @@ async function testUpload() {
     speedMode.textContent =
         "UPLOAD";
 
-
     progress(
         61,
         "Yükleme hızı ölçülüyor..."
     );
 
-
     const start =
         performance.now();
 
-
     let totalBytes = 0;
-
     let previousBytes = 0;
+    let previousTime = start;
 
-    let previousTime =
-        performance.now();
+    const phaseController =
+        new AbortController();
 
-
-    let finished = false;
-
-
-    // Sürekli upload yap
-
-    const uploadLoop =
-        async () => {
-
-            while (
-                !finished &&
-                running
-            ) {
-
-                const data =
-                    createUploadChunk(
-                        CONFIG.uploadChunkMB
-                    );
-
-
-                const bytes =
-                    await uploadChunk(
-                        data
-                    );
-
-
-                totalBytes +=
-                    bytes;
-
-            }
-
-        };
-
-
-    // 2 paralel upload
-
-    const worker1 =
-        uploadLoop();
-
-    const worker2 =
-        uploadLoop();
-
-
-    const timer =
-        setInterval(
-            () => {
-
-                const now =
-                    performance.now();
-
-
-                const interval =
-                    (
-                        now -
-                        previousTime
-                    ) / 1000;
-
-
-                if (interval > 0) {
-
-                    const bytes =
-                        totalBytes -
-                        previousBytes;
-
-
-                    const speed =
-                        bytes *
-                        8 /
-                        interval /
-                        1000000;
-
-
-                    setSpeed(
-                        speed,
-                        "UPLOAD"
-                    );
-
-                    addGraph(
-                        speed
-                    );
-
-
-                    progress(
-                        61 +
-                        Math.min(
-                            38,
-                            (
-                                now -
-                                start
-                            ) /
-                            CONFIG.uploadDuration *
-                            38
-                        ),
-                        `Upload ölçülüyor • ${number(speed)} Mbps`
-                    );
-
-                }
-
-
-                previousBytes =
-                    totalBytes;
-
-                previousTime =
-                    now;
-
-            },
-            150
+    const timerAbort =
+        setTimeout(
+            () => phaseController.abort(),
+            CONFIG.uploadDuration
         );
 
+    const workers = [];
 
-    // Minimum 9 saniye
+    for (
+        let i = 0;
+        i < CONFIG.uploadStreams;
+        i++
+    ) {
 
-    await sleep(
-        CONFIG.uploadDuration
-    );
+        workers.push(
+            uploadWorker(
+                phaseController.signal,
+                bytes => {
+                    totalBytes += bytes;
+                }
+            )
+        );
+    }
 
+    const timer =
+        setInterval(() => {
 
-    finished = true;
+            const now =
+                performance.now();
 
+            const elapsed =
+                (now - start) / 1000;
 
-    // Çalışan upload isteklerinin
-    // tamamlanmasını bekle
+            const interval =
+                (now - previousTime) / 1000;
+
+            const bytes =
+                totalBytes -
+                previousBytes;
+
+            if (interval > 0) {
+
+                const speed =
+                    bytes *
+                    8 /
+                    interval /
+                    1000000;
+
+                setSpeed(
+                    speed,
+                    "UPLOAD"
+                );
+
+                addGraph(speed);
+            }
+
+            previousBytes =
+                totalBytes;
+
+            previousTime =
+                now;
+
+            const percent =
+                Math.min(
+                    100,
+                    elapsed /
+                    (CONFIG.uploadDuration / 1000) *
+                    100
+                );
+
+            progress(
+                61 +
+                percent * 0.38,
+                `Upload ölçülüyor • ${number(lastSpeed)} Mbps`
+            );
+
+        }, 120);
 
     try {
 
-        await Promise.all([
-            worker1,
-            worker2
-        ]);
+        /*
+         * Tam süre dolunca controller
+         * upload isteklerini keser.
+         */
+        await sleep(
+            CONFIG.uploadDuration
+        );
 
-    } catch (error) {
+    } finally {
 
-        if (
-            error.name !==
-            "AbortError"
-        ) {
+        phaseController.abort();
 
-            console.warn(
-                "Upload worker:",
-                error
-            );
-
-        }
-
+        clearTimeout(timerAbort);
+        clearInterval(timer);
     }
 
-
-    clearInterval(timer);
-
-
     const elapsed =
-        (
-            performance.now() -
-            start
-        ) / 1000;
-
+        Math.max(
+            0.1,
+            (
+                performance.now() -
+                start
+            ) / 1000
+        );
 
     const speed =
         totalBytes *
@@ -1207,29 +1059,22 @@ async function testUpload() {
         elapsed /
         1000000;
 
-
-    uploadResult =
-        speed;
-
+    uploadResult = speed;
 
     uploadEl.textContent =
         number(speed);
-
 
     setSpeed(
         speed,
         "UPLOAD"
     );
 
-
     progress(
         100,
         `Upload tamamlandı • ${number(speed)} Mbps`
     );
 
-
     return speed;
-
 }
 
 
@@ -1246,9 +1091,6 @@ function calculateScore(
 
     let score = 0;
 
-
-    // Download 40
-
     if (download >= 500)
         score += 40;
     else if (download >= 250)
@@ -1264,9 +1106,6 @@ function calculateScore(
     else
         score += 5;
 
-
-    // Upload 25
-
     if (upload >= 100)
         score += 25;
     else if (upload >= 50)
@@ -1279,9 +1118,6 @@ function calculateScore(
         score += 9;
     else
         score += 4;
-
-
-    // Ping 20
 
     if (ping <= 10)
         score += 20;
@@ -1296,9 +1132,6 @@ function calculateScore(
     else
         score += 2;
 
-
-    // Jitter 15
-
     if (jitter <= 5)
         score += 15;
     else if (jitter <= 10)
@@ -1310,14 +1143,9 @@ function calculateScore(
     else
         score += 2;
 
-
     return Math.round(
-        Math.min(
-            100,
-            score
-        )
+        Math.min(100, score)
     );
-
 }
 
 
@@ -1331,10 +1159,8 @@ function showQuality() {
             jitterResult
         );
 
-
     scoreEl.textContent =
         score;
-
 
     if (score >= 90) {
 
@@ -1375,9 +1201,7 @@ function showQuality() {
 
         qualityText.textContent =
             "Bağlantınızda performans problemleri olabilir.";
-
     }
-
 }
 
 
@@ -1397,15 +1221,12 @@ async function loadNetwork() {
                 }
             );
 
-
         const data =
             await response.json();
-
 
         ipEl.textContent =
             data.ip ||
             "Bilinmiyor";
-
 
         serverEl.textContent =
             data.server ||
@@ -1418,15 +1239,12 @@ async function loadNetwork() {
 
         serverEl.textContent =
             "Bilinmiyor";
-
     }
-
 
     const connection =
         navigator.connection ||
         navigator.mozConnection ||
         navigator.webkitConnection;
-
 
     if (!connection) {
 
@@ -1434,39 +1252,26 @@ async function loadNetwork() {
             "Bilinmiyor";
 
         return;
-
     }
-
 
     const type =
         connection.type ||
         connection.effectiveType;
 
-
     const names = {
-
         wifi: "Wi-Fi",
-
         ethernet: "Ethernet",
-
         cellular: "Mobil",
-
         "5g": "5G",
-
         "4g": "4G",
-
         "3g": "3G",
-
         "2g": "2G"
-
     };
-
 
     connectionEl.textContent =
         names[type] ||
         type ||
         "Bilinmiyor";
-
 }
 
 
@@ -1483,47 +1288,34 @@ function reset() {
     pingResult = 0;
     jitterResult = 0;
 
+    downloadEl.textContent = "—";
+    uploadEl.textContent = "—";
+    pingEl.textContent = "—";
+    jitterEl.textContent = "—";
 
-    downloadEl.textContent =
-        "—";
-
-    uploadEl.textContent =
-        "—";
-
-    pingEl.textContent =
-        "—";
-
-    jitterEl.textContent =
-        "—";
-
-
-    scoreEl.textContent =
-        "—";
-
+    scoreEl.textContent = "—";
 
     qualityTitle.textContent =
         "Henüz test edilmedi";
 
-
     qualityText.textContent =
         "İnternet bağlantınızın kalitesini görmek için testi başlatın.";
 
-
-    chartEmpty.style.display =
-        "flex";
-
+    if (chartEmpty) {
+        chartEmpty.style.display = "flex";
+    }
 
     setSpeed(
         0,
         "HAZIR"
     );
 
-
     progress(
         0,
         "Testi başlatmak için hazır."
     );
 
+    drawGraph();
 }
 
 
@@ -1537,72 +1329,52 @@ async function startTest() {
         return;
     }
 
-
     running = true;
 
     controller =
         new AbortController();
 
-
     reset();
 
-
-    startButton.disabled =
-        true;
-
-    startButton.style.opacity =
-        ".55";
-
+    startButton.disabled = true;
+    startButton.style.opacity = ".55";
 
     stopButton.classList.remove(
         "hidden"
     );
 
-
     startText.textContent =
         "TEST ÇALIŞIYOR";
 
-
     try {
 
-        // PING
+        await testPing();
 
-        const ping =
-            await testPing();
-
-
-        // DOWNLOAD
+        checkRunning();
 
         await testDownload();
 
-
-        // UPLOAD
+        checkRunning();
 
         await testUpload();
 
-
-        // SCORE
+        checkRunning();
 
         showQuality();
-
 
         phase.textContent =
             "TEST TAMAMLANDI";
 
-
         speedMode.textContent =
             "SONUÇ";
-
 
         progress(
             100,
             "Test tamamlandı."
         );
 
-
         startText.textContent =
             "TEKRAR TEST ET";
-
 
     } catch (error) {
 
@@ -1611,38 +1383,35 @@ async function startTest() {
             error
         );
 
-
         phase.textContent =
-            "TEST DURDURULDU";
-
+            running
+                ? "TEST HATASI"
+                : "TEST DURDURULDU";
 
         progressLabel.textContent =
             error.message ||
             "Test sırasında hata oluştu.";
 
-
         startText.textContent =
             "TEKRAR DENE";
 
+    } finally {
+
+        running = false;
+
+        if (controller) {
+            controller.abort();
+        }
+
+        controller = null;
+
+        startButton.disabled = false;
+        startButton.style.opacity = "1";
+
+        stopButton.classList.add(
+            "hidden"
+        );
     }
-
-
-    running = false;
-
-    controller = null;
-
-
-    startButton.disabled =
-        false;
-
-    startButton.style.opacity =
-        "1";
-
-
-    stopButton.classList.add(
-        "hidden"
-    );
-
 }
 
 
@@ -1654,37 +1423,25 @@ function stopTest() {
 
     running = false;
 
-
     if (controller) {
-
         controller.abort();
-
     }
-
 
     phase.textContent =
         "TEST DURDURULDU";
 
-
     progressLabel.textContent =
         "Test durduruldu.";
-
 
     startText.textContent =
         "TEKRAR DENE";
 
-
-    startButton.disabled =
-        false;
-
-    startButton.style.opacity =
-        "1";
-
+    startButton.disabled = false;
+    startButton.style.opacity = "1";
 
     stopButton.classList.add(
         "hidden"
     );
-
 }
 
 
@@ -1692,16 +1449,22 @@ function stopTest() {
    EVENTS
    ========================================================= */
 
-startButton.addEventListener(
-    "click",
-    startTest
-);
+if (startButton) {
+
+    startButton.addEventListener(
+        "click",
+        startTest
+    );
+}
 
 
-stopButton.addEventListener(
-    "click",
-    stopTest
-);
+if (stopButton) {
+
+    stopButton.addEventListener(
+        "click",
+        stopTest
+    );
+}
 
 
 window.addEventListener(
@@ -1723,6 +1486,5 @@ document.addEventListener(
         loadNetwork();
 
         reset();
-
     }
 );
