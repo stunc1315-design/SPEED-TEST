@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>İnternet Hız Testi</title>
+
+    <meta
+        name="description"
+        content="Ücretsiz internet hız testi. Download, upload, ping ve jitter değerlerinizi hızlı ve kolay şekilde ölçün."
+    >
+
+    <meta
+        name="keywords"
+        content="internet hız testi, speed test, download hız testi, upload hız testi, ping testi, internet testi"
+    >
+
+    <meta
+        name="theme-color"
+        content="#07090d"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}?v=3000"
+    >
+
+</head>
+
+
+<body>
+
+
+<div class="ambient ambient-one"></div>
+<div class="ambient ambient-two"></div>
+
+
+<!-- HEADER -->
+
+<header class="header">
+
+    <div class="header-title">
+        İNTERNET HIZ TESTİ
+    </div>
+
+    <div class="header-badge">
+        ÜCRETSİZ
+    </div>
+
+</header>
+
+
+
+<main class="page">
+
+
+    <!-- HERO -->
+
+    <section class="hero">
+
+        <div class="eyebrow">
+            BAĞLANTI PERFORMANSINI ÖLÇ
+        </div>
+
+        <h1>
+            İnternetin
+            <span>ne kadar hızlı?</span>
+        </h1>
+
+        <p>
+            Download, upload, ping ve jitter değerlerini
+            tek bir testte ölç.
+        </p>
+
+    </section>
+
+
+
+    <!-- TEST -->
+
+    <section class="test-box">
+
+
+        <div class="phase" id="phase">
+            TESTE HAZIR
+        </div>
+
+
+        <div class="speedometer">
+
+
+            <div
+                class="speed-ring"
+                id="speedRing"
+            >
+
+                <div class="speed-center">
+
+                    <div
+                        class="speed-number"
+                        id="speedNumber"
+                    >
+                        0
+                    </div>
+
+                    <div class="speed-unit">
+                        Mbps
+                    </div>
+
+                    <div
+                        class="speed-mode"
+                        id="speedMode"
+                    >
+                        HAZIR
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="progress-info">
+
+            <span id="progressLabel">
+                Testi başlatmak için hazır.
+            </span>
+
+            <strong id="progressPercent">
+                0%
+            </strong>
+
+        </div>
+
+
+        <div class="progress-track">
+
+            <div
+                class="progress-value"
+                id="progressValue"
+            ></div>
+
+        </div>
+
+
+        <button
+            class="start"
+            id="startButton"
+        >
+
+            <span id="startText">
+                TESTİ BAŞLAT
+            </span>
+
+            <span>
+                →
+            </span>
+
+        </button>
+
+
+        <button
+            class="stop hidden"
+            id="stopButton"
+        >
+            TESTİ DURDUR
+        </button>
+
+
+    </section>
+
+
+
+    <!-- MAIN RESULTS -->
+
+    <section class="results">
+
+
+        <div class="result result-download">
+
+            <div class="result-header">
+
+                <span class="result-symbol">
+                    ↓
+                </span>
+
+                <span>
+                    DOWNLOAD
+                </span>
+
+            </div>
+
+            <div
+                class="result-number"
+                id="download"
+            >
+                —
+            </div>
+
+            <small>
+                Mbps
+            </small>
+
+        </div>
+
+
+
+        <div class="result result-upload">
+
+            <div class="result-header">
+
+                <span class="result-symbol">
+                    ↑
+                </span>
+
+                <span>
+                    UPLOAD
+                </span>
+
+            </div>
+
+            <div
+                class="result-number"
+                id="upload"
+            >
+                —
+            </div>
+
+            <small>
+                Mbps
+            </small>
+
+        </div>
+
+
+
+        <div class="result">
+
+            <div class="result-header">
+
+                <span class="result-symbol">
+                    ◉
+                </span>
+
+                <span>
+                    PING
+                </span>
+
+            </div>
+
+            <div
+                class="result-number"
+                id="ping"
+            >
+                —
+            </div>
+
+            <small>
+                ms
+            </small>
+
+        </div>
+
+
+
+        <div class="result">
+
+            <div class="result-header">
+
+                <span class="result-symbol">
+                    ≈
+                </span>
+
+                <span>
+                    JITTER
+                </span>
+
+            </div>
+
+            <div
+                class="result-number"
+                id="jitter"
+            >
+                —
+            </div>
+
+            <small>
+                ms
+            </small>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- GRAPH -->
+
+    <section class="graph-box">
+
+        <div class="graph-header">
+
+            <div>
+
+                <span>
+                    CANLI ÖLÇÜM
+                </span>
+
+                <h2>
+                    Bağlantı performansı
+                </h2>
+
+            </div>
+
+            <strong id="liveSpeed">
+                0 Mbps
+            </strong>
+
+        </div>
+
+
+        <div class="chart">
+
+            <canvas
+                id="chartCanvas"
+            ></canvas>
+
+            <div
+                class="chart-empty"
+                id="chartEmpty"
+            >
+                Test başladığında hız grafiği burada görünecek.
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- SCORE -->
+
+    <section class="quality">
+
+        <div class="quality-score">
+
+            <span id="score">
+                —
+            </span>
+
+            <small>
+                /100
+            </small>
+
+        </div>
+
+
+        <div>
+
+            <span class="quality-label">
+                BAĞLANTI KALİTESİ
+            </span>
+
+            <h2 id="qualityTitle">
+                Henüz test edilmedi
+            </h2>
+
+            <p id="qualityText">
+                İnternet bağlantınızın kalitesini görmek için
+                testi başlatın.
+            </p>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- NETWORK -->
+
+    <section class="network">
+
+        <div class="network-item">
+
+            <span class="network-icon">
+                🌐
+            </span>
+
+            <div>
+
+                <small>
+                    IP ADRESİ
+                </small>
+
+                <strong id="ip">
+                    —
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="network-item">
+
+            <span class="network-icon">
+                📡
+            </span>
+
+            <div>
+
+                <small>
+                    BAĞLANTI
+                </small>
+
+                <strong id="connection">
+                    —
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="network-item">
+
+            <span class="network-icon">
+                🖥
+            </span>
+
+            <div>
+
+                <small>
+                    SUNUCU
+                </small>
+
+                <strong id="server">
+                    —
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- AD -->
+
+    <div class="ad">
+
+        <span>
+            REKLAM
+        </span>
+
+    </div>
+
+
+
+    <!-- INFORMATION -->
+
+    <section class="information">
+
+        <h2>
+            İnternet hız testi nedir?
+        </h2>
+
+        <p>
+            İnternet hız testi, bağlantınızın veri indirme ve
+            yükleme performansını ölçer. Download değeri
+            internetten ne kadar hızlı veri alabildiğinizi,
+            upload değeri ise ne kadar hızlı veri gönderebildiğinizi
+            gösterir.
+        </p>
+
+        <div class="tips">
+
+            <div>
+                <b>01</b>
+
+                <span>
+                    Test sırasında büyük indirme ve yüklemeleri durdur.
+                </span>
+            </div>
+
+            <div>
+                <b>02</b>
+
+                <span>
+                    Mümkünse Ethernet bağlantısı kullan.
+                </span>
+            </div>
+
+            <div>
+                <b>03</b>
+
+                <span>
+                    Daha doğru sonuç için farklı zamanlarda tekrar test et.
+                </span>
+            </div>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+
+<footer>
+
+    <strong>
+        İNTERNET HIZ TESTİ
+    </strong>
+
+    <span>
+        © 2026 • Sonuçlar bağlantı koşullarına göre değişebilir.
+    </span>
+
+</footer>
+
+
+
+<script
+    src="{{ url_for('static', filename='script.js') }}?v=3000"
+></script>
+
+</body>
+
+</html>
