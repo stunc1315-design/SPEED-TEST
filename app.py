@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request, Response
+﻿from flask import Flask, render_template, jsonify, request, Response
 import os
 import socket
 import secrets
@@ -137,7 +137,7 @@ def upload():
 
             return jsonify({
                 "ok": False,
-                "error": "Upload sınırı aşıldı."
+                "error": "Upload sÄ±nÄ±rÄ± aÅŸÄ±ldÄ±."
             }), 413
 
     elapsed = (
@@ -152,6 +152,31 @@ def upload():
     })
 
 
+
+@app.route("/robots.txt")
+def robots():
+    return Response(
+        """User-agent: *
+Allow: /
+
+Sitemap: https://speed-test-jw6l.onrender.com/sitemap.xml
+""",
+        mimetype="text/plain"
+    )
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    return Response(
+        """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://speed-test-jw6l.onrender.com/</loc>
+    </url>
+</urlset>
+""",
+        mimetype="application/xml"
+    )
 if __name__ == "__main__":
 
     port = int(
