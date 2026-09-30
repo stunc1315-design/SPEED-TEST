@@ -2,7 +2,7 @@
 
 /* =========================================================
    LEVEL SPEED V4
-   HIZLI + STABIL SPEED TEST
+   FAST + STABLE SPEED TEST
    ========================================================= */
 
 const CONFIG = {
@@ -121,7 +121,7 @@ function progress(value, label) {
 
 function checkRunning() {
     if (!running) {
-        throw new Error("Test durduruldu.");
+        throw new Error("Test stopped.");
     }
 }
 
@@ -457,14 +457,14 @@ async function testPing() {
     checkRunning();
 
     phase.textContent =
-        "PING ÖLÇÜLÜYOR";
+        "MEASURING PING";
 
     speedMode.textContent =
         "PING";
 
     progress(
         5,
-        "Sunucu gecikmesi ölçülüyor..."
+        "Measuring server latency..."
     );
 
     const values = [];
@@ -494,7 +494,7 @@ async function testPing() {
                 );
 
             if (!response.ok) {
-                throw new Error("Ping başarısız.");
+                throw new Error("Ping failed.");
             }
 
             const result =
@@ -509,7 +509,7 @@ async function testPing() {
                     (i + 1) /
                     CONFIG.pingCount
                 ) * 10,
-                `Ping ölçülüyor • ${Math.round(result)} ms`
+                `Ping measured • ${Math.round(result)} ms`
             );
 
         } catch (error) {
@@ -519,7 +519,7 @@ async function testPing() {
             }
 
             console.warn(
-                "Ping hatası:",
+                "Ping error:",
                 error
             );
         }
@@ -529,7 +529,7 @@ async function testPing() {
 
     if (!values.length) {
         throw new Error(
-            "Ping ölçümü yapılamadı."
+            "Ping measurement failed."
         );
     }
 
@@ -601,13 +601,13 @@ async function downloadWorker(
 
         if (!response.ok) {
             throw new Error(
-                "Download bağlantısı başarısız."
+                "Download connection failed."
             );
         }
 
         if (!response.body) {
             throw new Error(
-                "Tarayıcı veri akışını desteklemiyor."
+                "Your browser does not support data streaming."
             );
         }
 
@@ -657,14 +657,14 @@ async function testDownload() {
     checkRunning();
 
     phase.textContent =
-        "DOWNLOAD ÖLÇÜLÜYOR";
+        "MEASURING DOWNLOAD";
 
     speedMode.textContent =
         "DOWNLOAD";
 
     progress(
         18,
-        "İndirme hızı ölçülüyor..."
+        "Measuring download speed..."
     );
 
     const start =
@@ -750,7 +750,7 @@ async function testDownload() {
             progress(
                 18 +
                 percent * 0.42,
-                `Download ölçülüyor • ${number(lastSpeed)} Mbps`
+                `Download measured • ${number(lastSpeed)} Mbps`
             );
 
         }, 120);
@@ -794,7 +794,7 @@ async function testDownload() {
 
     progress(
         60,
-        `Download tamamlandı • ${number(speed)} Mbps`
+        `Download complete • ${number(speed)} Mbps`
     );
 
     return speed;
@@ -928,14 +928,14 @@ async function testUpload() {
     checkRunning();
 
     phase.textContent =
-        "UPLOAD ÖLÇÜLÜYOR";
+        "MEASURING UPLOAD";
 
     speedMode.textContent =
         "UPLOAD";
 
     progress(
         61,
-        "Yükleme hızı ölçülüyor..."
+        "Measuring upload speed..."
     );
 
     const start =
@@ -1021,17 +1021,13 @@ async function testUpload() {
             progress(
                 61 +
                 percent * 0.38,
-                `Upload ölçülüyor • ${number(lastSpeed)} Mbps`
+                `Upload measured • ${number(lastSpeed)} Mbps`
             );
 
         }, 120);
 
     try {
 
-        /*
-         * Tam süre dolunca controller
-         * upload isteklerini keser.
-         */
         await sleep(
             CONFIG.uploadDuration
         );
@@ -1071,7 +1067,7 @@ async function testUpload() {
 
     progress(
         100,
-        `Upload tamamlandı • ${number(speed)} Mbps`
+        `Upload complete • ${number(speed)} Mbps`
     );
 
     return speed;
@@ -1165,42 +1161,42 @@ function showQuality() {
     if (score >= 90) {
 
         qualityTitle.textContent =
-            "Mükemmel bağlantı";
+            "Excellent connection";
 
         qualityText.textContent =
-            "Bağlantınız yüksek performans gösteriyor. Video, oyun ve yoğun internet kullanımı için oldukça iyi.";
+            "Your connection is performing at a high level. It is well suited for video streaming, gaming and heavy internet usage.";
 
     } else if (score >= 75) {
 
         qualityTitle.textContent =
-            "Çok iyi bağlantı";
+            "Very good connection";
 
         qualityText.textContent =
-            "Günlük kullanım ve yüksek kaliteli video için oldukça iyi bir bağlantınız var.";
+            "Your connection is very good for everyday use and high-quality video streaming.";
 
     } else if (score >= 55) {
 
         qualityTitle.textContent =
-            "İyi bağlantı";
+            "Good connection";
 
         qualityText.textContent =
-            "Bağlantınız günlük internet kullanımı için yeterli seviyede.";
+            "Your connection is suitable for everyday internet use.";
 
     } else if (score >= 35) {
 
         qualityTitle.textContent =
-            "Orta bağlantı";
+            "Average connection";
 
         qualityText.textContent =
-            "Yoğun kullanım sırasında hız veya gecikme problemleri yaşanabilir.";
+            "You may experience speed or latency issues during heavy usage.";
 
     } else {
 
         qualityTitle.textContent =
-            "Zayıf bağlantı";
+            "Weak connection";
 
         qualityText.textContent =
-            "Bağlantınızda performans problemleri olabilir.";
+            "Your connection may have performance issues.";
     }
 }
 
@@ -1226,19 +1222,19 @@ async function loadNetwork() {
 
         ipEl.textContent =
             data.ip ||
-            "Bilinmiyor";
+            "Unknown";
 
         serverEl.textContent =
             data.server ||
-            "Test sunucusu";
+            "Test server";
 
     } catch {
 
         ipEl.textContent =
-            "Bilinmiyor";
+            "Unknown";
 
         serverEl.textContent =
-            "Bilinmiyor";
+            "Unknown";
     }
 
     const connection =
@@ -1249,7 +1245,7 @@ async function loadNetwork() {
     if (!connection) {
 
         connectionEl.textContent =
-            "Bilinmiyor";
+            "Unknown";
 
         return;
     }
@@ -1261,7 +1257,7 @@ async function loadNetwork() {
     const names = {
         wifi: "Wi-Fi",
         ethernet: "Ethernet",
-        cellular: "Mobil",
+        cellular: "Mobile",
         "5g": "5G",
         "4g": "4G",
         "3g": "3G",
@@ -1271,7 +1267,7 @@ async function loadNetwork() {
     connectionEl.textContent =
         names[type] ||
         type ||
-        "Bilinmiyor";
+        "Unknown";
 }
 
 
@@ -1296,10 +1292,10 @@ function reset() {
     scoreEl.textContent = "—";
 
     qualityTitle.textContent =
-        "Henüz test edilmedi";
+        "Not tested yet";
 
     qualityText.textContent =
-        "İnternet bağlantınızın kalitesini görmek için testi başlatın.";
+        "Start the test to check the quality of your internet connection.";
 
     if (chartEmpty) {
         chartEmpty.style.display = "flex";
@@ -1307,12 +1303,12 @@ function reset() {
 
     setSpeed(
         0,
-        "HAZIR"
+        "READY"
     );
 
     progress(
         0,
-        "Testi başlatmak için hazır."
+        "Ready to start the test."
     );
 
     drawGraph();
@@ -1344,7 +1340,7 @@ async function startTest() {
     );
 
     startText.textContent =
-        "TEST ÇALIŞIYOR";
+        "TEST RUNNING";
 
     try {
 
@@ -1363,18 +1359,18 @@ async function startTest() {
         showQuality();
 
         phase.textContent =
-            "TEST TAMAMLANDI";
+            "TEST COMPLETED";
 
         speedMode.textContent =
-            "SONUÇ";
+            "RESULT";
 
         progress(
             100,
-            "Test tamamlandı."
+            "Test completed."
         );
 
         startText.textContent =
-            "TEKRAR TEST ET";
+            "TEST AGAIN";
 
     } catch (error) {
 
@@ -1385,15 +1381,15 @@ async function startTest() {
 
         phase.textContent =
             running
-                ? "TEST HATASI"
-                : "TEST DURDURULDU";
+                ? "TEST ERROR"
+                : "TEST STOPPED";
 
         progressLabel.textContent =
             error.message ||
-            "Test sırasında hata oluştu.";
+            "An error occurred during the test.";
 
         startText.textContent =
-            "TEKRAR DENE";
+            "TRY AGAIN";
 
     } finally {
 
@@ -1428,13 +1424,13 @@ function stopTest() {
     }
 
     phase.textContent =
-        "TEST DURDURULDU";
+        "TEST STOPPED";
 
     progressLabel.textContent =
-        "Test durduruldu.";
+        "Test stopped.";
 
     startText.textContent =
-        "TEKRAR DENE";
+        "TRY AGAIN";
 
     startButton.disabled = false;
     startButton.style.opacity = "1";
